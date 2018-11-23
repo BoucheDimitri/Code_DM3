@@ -88,6 +88,15 @@ def log_smoothing_delta(log_alphas, log_betas, t):
     return log_alphas[:, t] + log_betas[:, t] - z
 
 
+def smoothing_delta_mat(log_alphas, log_betas):
+    k = log_betas.shape[0]
+    T = log_alphas.shape[1]
+    log_delta_mat = np.zeros((k, T))
+    for t in range(0, T):
+        log_delta_mat[:, t] = log_smoothing_delta(log_alphas, log_betas, t)
+    return np.exp(log_delta_mat)
+
+
 def log_smoothing_xi(umat, A, log_alphas, log_betas, t, mus, sigmas):
     k = log_betas.shape[0]
     log_xi = np.zeros((k, k))
@@ -99,3 +108,11 @@ def log_smoothing_xi(umat, A, log_alphas, log_betas, t, mus, sigmas):
     z = log_plus(log_xi.flatten())
     return log_xi - z
 
+
+def smoothing_xi_tensor(umat, A, log_alphas, log_betas, mus, sigmas):
+    k = log_betas.shape[0]
+    T = umat.shape[1]
+    log_xi_tensor = np.zeros((k, k, T - 1))
+    for t in range(0, T - 1):
+        log_xi_tensor[:, :, t] = log_smoothing_xi(umat, A, log_alphas, log_betas, t, mus, sigmas)
+    return np.exp(log_xi_tensor)

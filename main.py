@@ -57,3 +57,5 @@ test_beta = hmm.beta_recursion(x, A, mus, sigmas)
 sm = hmm.log_smoothing_delta(test_alpha, test_beta, 50)
 
 log_xi = hmm.log_smoothing_xi(x, A, test_alpha, test_beta, 50, mus, sigmas)
+
+log_xi_tensor = hmm.log_smoothing_xi_tensor(x, A, test_alpha, test_beta, mus, sigmas)
