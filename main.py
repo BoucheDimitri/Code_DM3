@@ -8,10 +8,12 @@ import os
 import numpy as np
 
 import hmm
+import em as em_dm3
 
 from Code_DM2 import em, kmeans, utils
 
 importlib.reload(hmm)
+importlib.reload(em_dm3)
 
 
 # Plotting parameters
@@ -58,4 +60,16 @@ sm = hmm.log_smoothing_delta(test_alpha, test_beta, 50)
 
 log_xi = hmm.log_smoothing_xi(x, A, test_alpha, test_beta, 50, mus, sigmas)
 
-log_xi_tensor = hmm.log_smoothing_xi_tensor(x, A, test_alpha, test_beta, mus, sigmas)
+xi_tensor = hmm.smoothing_xi_tensor(x, A, test_alpha, test_beta, mus, sigmas)
+
+delta_mat = hmm.smoothing_delta_mat(test_alpha, test_beta)
+
+pitest = em_dm3.pi_update(delta_mat)
+
+mustest = em_dm3.mus_update(x, delta_mat)
+
+Atest = em_dm3.A_update(xi_tensor)
+
+sigtest = em_dm3.sigmas_update(x, delta_mat, mustest)
+
+test_em = em_dm3.iterate_em(x, pi0, A, mus, sigmas, 1000, 0.001)
