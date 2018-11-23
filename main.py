@@ -64,6 +64,17 @@ xi_tensor = hmm.smoothing_xi_tensor(x, A, test_alpha, test_beta, mus, sigmas)
 
 delta_mat = hmm.smoothing_delta_mat(test_alpha, test_beta)
 
+
+
+omega_test = hmm.omega_recursion(x, pi0, A, mus, sigmas)
+
+zs_test = hmm.log_backtracking(x, A, omega_test)
+
+
+fig, ax = plt.subplots()
+utils.plot_clusters_ellipses(x, mus, sigmas, 1.5, zs_test, ax)
+
+
 pitest = em_dm3.pi_update(delta_mat)
 
 mustest = em_dm3.mus_update(x, delta_mat)

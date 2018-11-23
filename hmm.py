@@ -116,3 +116,30 @@ def smoothing_xi_tensor(umat, A, log_alphas, log_betas, mus, sigmas):
     for t in range(0, T - 1):
         log_xi_tensor[:, :, t] = log_smoothing_xi(umat, A, log_alphas, log_betas, t, mus, sigmas)
     return np.exp(log_xi_tensor)
+
+
+def omega_recursion_step(u, A, log_omega, mus, sigmas):
+    K = log_omega.shape[0]
+    log_fs = conditional_log_densities(u, mus, sigmas)
+    max_term = np.max(log_omega.reshape((K, 1)) +  np.log(A), axis=0)
+    return log_fs + max_term
+
+
+def omega_recursion(umat, pi, A, mus, sigmas):
+    T = umat.shape[1]
+    K = pi.shape[0]
+    log_omegas = np.zeros((K, T))
+    log_fs = conditional_log_densities(umat[:, 0], mus, sigmas)
+    log_omegas[:, 0] = np.log(pi) + log_fs
+    for t in range(1, T):
+        log_omegas[:, t] = omega_recursion_step(umat[:, t], A, log_omegas[:, t - 1], mus, sigmas)
+    return log_omegas
+
+
+def log_backtracking(umat, A, log_omegas):
+    T = umat.shape[1]
+    zs = np.zeros(T, dtype=int)
+    zs[-1] = np.argmax(log_omegas[:, -1])
+    for t in np.arange(T - 2, 0, -1):
+        zs[t] = np.argmax(log_omegas[:, t] + np.log(A)[:, zs[t + 1]])
+    return zs
