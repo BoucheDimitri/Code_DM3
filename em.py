@@ -133,3 +133,18 @@ def iterate_em(umat, pi_0, A_0, mus_0, sigmas_0, maxit, epsilon):
         pi_k, A_k, mus_k, sigmas_k = pi_kplus1, A_kplus1, mus_kplus1, sigmas_kplus1
         print(k)
     return pi_kplus1, A_kplus1, mus_kplus1, sigmas_kplus1, qexpecs[1:]
+
+
+def fitted_log_likelihood(umat, z, pi, A, mus, sigmas):
+    K = A.shape[0]
+    T = umat.shape[1]
+    zmat = np.zeros((K, T))
+    Aterm = 0
+    logA = np.log(A)
+    for t in range(0, T - 1):
+        Aterm += logA[z[t], z[t + 1]]
+    for j in range(0, K):
+        zmat[j, :] = (z == j).astype(int)
+    lgmat = log_gmatrix(umat, mus, sigmas)
+    return np.log(pi)[z[0]] + Aterm + np.sum(zmat * lgmat)
+

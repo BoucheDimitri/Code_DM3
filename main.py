@@ -10,8 +10,9 @@ import numpy as np
 import hmm
 import em as em_dm3
 
-from Code_DM2 import em, kmeans, utils
+from Code_DM2 import em as em_dm2, kmeans, utils
 
+# Reload module (for developpement)
 importlib.reload(hmm)
 importlib.reload(em_dm3)
 
@@ -19,7 +20,6 @@ importlib.reload(em_dm3)
 # Plotting parameters
 plt.rcParams.update({'font.size': 25})
 
-# Reload module (for developpement)
 
 # Load the data
 path = os.getcwd() + "/data/"
@@ -30,57 +30,64 @@ xtest = data_test.values.T
 xall = np.concatenate((x, xtest), axis=1)
 
 
-# Run EM with general covariance matrices
+# Run EM with general covariance matrices (From DM2)
 # Initialization with kmeans
 mus_0, z = kmeans.iterate_kmeans(x, 4)
 pi_0 = utils.cluster_repartition(z)
 sigmas_0 = utils.clusters_cov(x, z)
-pi, mus, sigmas, qs = em.iterate_em(x, pi_0, mus_0, sigmas_0, 200, 0.00001, diag=False)
+pi, mus, sigmas, qs = em_dm2.iterate_em(x, pi_0, mus_0, sigmas_0, 200, 0.00001, diag=False)
 # Predict labels using the parameters learned by EM
-ztrain = em.assign_cluster(x, pi, mus, sigmas)
-# Plot the results
-fig3, axes3 = plt.subplots(1, 2)
-utils.plot_clusters_ellipses(x, mus, sigmas, 1.5, ztrain, axes3[0])
+ztrain = em_dm2.assign_cluster(x, pi, mus, sigmas)
 # Predict labels using the parameters learned by EM on all data (train + test)
-zall = em.assign_cluster(xall, pi, mus, sigmas)
-# Plot the results
-utils.plot_clusters(xall, mus, zall, axes3[1])
-axes3[0].set_title("EM general - Train data")
-axes3[1].set_title("EM general - All data")
+zall = em_dm2.assign_cluster(xall, pi, mus, sigmas)
+ztest = em_dm2.assign_cluster(xtest, pi, mus, sigmas)
 
 
+# Initialization of matrix A
+A0 = 0.25 * np.ones((4, 4))
 
-A = 0.25 * np.ones((4, 4))
-pi0 = 0.25 * np.ones(4)
-test_alpha = hmm.alpha_recursion(x, A, pi0, mus, sigmas)
+# Initialization using the parameters learnt by em from DM2
+pi0 = pi
+mus0 = mus
+sigmas0 = sigmas
 
-test_beta = hmm.beta_recursion(x, A, mus, sigmas)
+# Perform EM for the HMM modelization
+# We use the alpha and betas recursion to compute the necessary propabilities (see hmm.py file)
+pi_hmm, A_hmm, mus_hmm, sigmas_hmm, qs = em_dm3.iterate_em(x, pi0, A0, mus0, sigmas0, maxit=1000, epsilon=0.001)
 
-sm = hmm.log_smoothing_delta(test_alpha, test_beta, 50)
-
-log_xi = hmm.log_smoothing_xi(x, A, test_alpha, test_beta, 50, mus, sigmas)
-
-xi_tensor = hmm.smoothing_xi_tensor(x, A, test_alpha, test_beta, mus, sigmas)
-
-delta_mat = hmm.smoothing_delta_mat(test_alpha, test_beta)
-
-
-
-omega_test = hmm.omega_recursion(x, pi0, A, mus, sigmas)
-
-zs_test = hmm.log_backtracking(x, A, omega_test)
-
-
-fig, ax = plt.subplots()
-utils.plot_clusters_ellipses(x, mus, sigmas, 1.5, zs_test, ax)
+# Max product recursion (Viterbi algorithm) on training set
+omegas_train = hmm.omega_recursion(x, pi_hmm, A_hmm, mus_hmm, sigmas_hmm)
+# Backtracking step of the Viterbi algorithm for decoding
+z_hmm_train = hmm.log_backtracking(x, A_hmm, omegas_train)
+# Same thing on test set
+omegas_test = hmm.omega_recursion(xtest, pi_hmm, A_hmm, mus_hmm, sigmas_hmm)
+# Backtracking step of the Viterbi algorithm for decoding
+z_hmm_test = hmm.log_backtracking(x, A_hmm, omegas_test)
 
 
-pitest = em_dm3.pi_update(delta_mat)
+# Compare EM for GMM and EM for HMM on training set
+fig, axes = plt.subplots(1, 2)
+utils.plot_clusters_ellipses(x, mus, sigmas, 1.5, ztrain, axes[0])
+axes[0].set_title("EM for GMM - Training")
+utils.plot_clusters_ellipses(x, mus_hmm, sigmas_hmm, 1.5, z_hmm_train, axes[1])
+axes[1].set_title("EM for HMM - Training")
 
-mustest = em_dm3.mus_update(x, delta_mat)
+# Compare the fitted likelihoods
+llk_train_gmm = em_dm2.log_likelihood(x, ztrain, pi, mus, sigmas)
+llk_test_gmm = em_dm2.log_likelihood(xtest, ztest, pi, mus, sigmas)
+llk_train_hmm = em_dm3.fitted_log_likelihood(x, z_hmm_train, pi_hmm, A_hmm, mus_hmm, sigmas_hmm)
+llk_test_hmm = em_dm3.fitted_log_likelihood(xtest, z_hmm_test, pi_hmm, A_hmm, mus_hmm, sigmas_hmm)
+print("Train GMM: " + str(llk_train_gmm))
+print("Test GMM: " + str(llk_test_gmm))
+print("Train HMM: " + str(llk_train_hmm))
+print("Test HMM: " + str(llk_test_hmm))
+print("Test/Train shift GMM: " + str((llk_test_gmm - llk_train_gmm) / (llk_train_gmm)))
+print("Test/Train shift HMM: " + str((llk_test_hmm - llk_train_hmm) / (llk_train_hmm)))
 
-Atest = em_dm3.A_update(xi_tensor)
 
-sigtest = em_dm3.sigmas_update(x, delta_mat, mustest)
-
-test_em = em_dm3.iterate_em(x, pi0, A, mus, sigmas, 1000, 0.001)
+# Compare EM for GMM and EM for HMM on training set
+fig2, axes2 = plt.subplots(1, 2)
+utils.plot_clusters_ellipses(xtest, mus, sigmas, 1.5, ztest, axes2[0])
+axes2[0].set_title("EM for GMM - Test")
+utils.plot_clusters_ellipses(xtest, mus_hmm, sigmas_hmm, 1.5, z_hmm_test, axes2[1])
+axes2[1].set_title("EM for HMM - Test")

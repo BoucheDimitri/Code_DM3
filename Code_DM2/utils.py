@@ -78,7 +78,7 @@ def plot_clusters_ellipses(xs, mus, sigmas, nsig, z, ax):
     xspd = clustered_table(xs, z)
     k = np.unique(z).shape[0]
     for j in range(0, k):
-        ax.scatter(xspd[xspd.c == j].x0, xspd[xspd.c == j].x1, s=50)
+        ax.scatter(xspd[xspd.c == j].x0, xspd[xspd.c == j].x1, s=70)
         ax.scatter(mus[0, j], mus[1, j], c="k", marker="^", s=250)
         lamb, u = np.linalg.eig(sigmas[j])
         lamb = np.sqrt(lamb)

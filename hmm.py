@@ -13,34 +13,6 @@ def conditional_log_densities(u, mus, sigmas):
     return densities
 
 
-# def conditional_densities(u, mus, sigmas):
-#     k = mus.shape[1]
-#     densities = np.array([stats.multivariate_normal.pdf(u, mus[:, i], sigmas[i]) for i in range(0, k)])
-#     return densities
-
-
-# def alpha_recursion_step_bis(u, A, scaled_alpha_t, mus, sigmas):
-#     densities = conditional_densities(u, mus, sigmas)
-#     alpha_tplus1 = densities * (np.dot(A.T, scaled_alpha_t))
-#     c_tplus1 = (1 / np.sum(alpha_tplus1))
-#     return c_tplus1 * alpha_tplus1, c_tplus1
-#
-#
-# def alpha_recursion_bis(umat, A, pi0, mus, sigmas):
-#     k = A.shape[0]
-#     T = umat.shape[1]
-#     scaled_alphas = np.zeros((k, T))
-#     scaling_coefs = np.zeros(T)
-#     fs = conditional_densities(umat[:, 0], mus, sigmas)
-#     alpha0 = fs * np.log(pi0)
-#     c0 = (1 / np.sum(alpha0))
-#     scaled_alphas[:, 0] = fs * np.log(pi0)
-#     scaling_coefs[0] = c0
-#     for t in range(1, T):
-#         scaled_alphas[:, t], scaling_coefs[t] = alpha_recursion_step_bis(umat[:, t], A, scaled_alphas[:, t - 1], mus, sigmas)
-#     return (1 / np.cumprod(scaling_coefs)) * scaled_alphas
-#
-
 def alpha_recursion_step(u, A, log_alpha_t, mus, sigmas):
     k = log_alpha_t.shape[0]
     log_A = np.log(A)
